@@ -1,17 +1,18 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const bcryptjs = require("bcryptjs"); 
 const port = 3000;
 
 const app = express();
 
 mongoose
-  .connect("mongodb://localhost:27017/Users")
+  .connect("mongodb://localhost:27017/Demo")
   .then(() => {
     console.log("Connected to MongoDB");
   })
   .catch((err) => {
-    console.log(`Error to connecting MongoDb ${err}`);
+    console.log(`Error connecting to MongoDB ${err}`);
   });
 
 const userSchema = new mongoose.Schema({
@@ -29,43 +30,49 @@ app.get("/", (req, res) => {
   res.send("Welcome to User registration");
 });
 
-app.post("/user ", async (req, res) => {
+
+app.post("/user", async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
-    return res.status(400).send("username, email, and password required");
+    return res.status(400).send("Username, email, and password required");
   }
-  const newUser = new User({
-    username,
-    email,
-    password,
-  });
 
   try {
+    const hashedPassword = await bcryptjs.hash(password, 10);
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword, 
+    });
+
     await newUser.save();
-    res.status(200).send("registration successful");
+    res.status(200).send("Registration successful");
   } catch (error) {
     console.log(error);
-    res.status(500).send("registration failed");
+    res.status(500).send("Registration failed");
   }
 });
 
 
 app.put("/user", async (req, res) => {
-  const { id, username, email, password } = req.body; 
+  const { id, username, email, password } = req.body;
   if (!id) {
     return res.status(400).send("User ID is required");
   }
 
   try {
+    const hashedPassword = await bcryptjs.hash(password, 10);
     const updatedUser = await User.findByIdAndUpdate(id, {
       username,
       email,
-      password,
+      password: hashedPassword,
     });
+
     if (!updatedUser) {
       return res.status(404).send("User not found");
     }
+
     res.status(200).send("User updated successfully");
   } catch (error) {
     console.log(error);
@@ -75,7 +82,7 @@ app.put("/user", async (req, res) => {
 
 
 app.delete("/user", async (req, res) => {
-  const { id } = req.body; 
+  const { id } = req.body;
   if (!id) {
     return res.status(400).send("User ID is required");
   }
